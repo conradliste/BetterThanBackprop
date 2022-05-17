@@ -78,51 +78,84 @@ class MnistVAE(nn.Module):
         self.encoder.load_state_dict(torch.load(fn_enc))
         self.decoder.load_state_dict(torch.load(fn_dec))
 
-    def generate(self, x: Tensor, **kwargs) -> Tensor:
+    def generate(self, x):
         """
         Given an input image x, returns the reconstructed image
         :param x: (Tensor) [B x C x H x W]
         :return: (Tensor) [B x C x H x W]
         """
 
-        return self.forward(x)[0]
+        return self.forward(x)
 
-# class Decoder(nn.Module):
-#     def __init__(self, latent_dims):
-#         super(Decoder, self).__init__()
-#         self.linear1 = nn.Linear(latent_dims, 512)
-#         self.linear2 = nn.Linear(512, 784)
+class MnistVAE2(nn.Module):
+    def __init__(self,latent_dims=50):
+        super(MnistVAE2, self).__init__()
 
-#     def forward(self, z):
-#         z = F.relu(self.linear1(z))
-#         z = torch.sigmoid(self.linear2(z))
-#         return z.reshape((-1, 1, 28, 28))
-# class VariationalEncoder(nn.Module):
-#     def __init__(self, latent_dims):
-#         super(VariationalEncoder, self).__init__()
-#         self.linear1 = nn.Linear(784, 512)
-#         self.linear2 = nn.Linear(512, latent_dims)
-#         self.linear3 = nn.Linear(512, latent_dims)
+        self.encoder = nn.Sequential(
+	        nn.Conv2d(1, 64, 3, 1),
+            nn.GroupNorm(min(32, 64), 64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 4, 2, 1),
+            nn.GroupNorm(min(32, 64), 64),  
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(64, 128,1),
+        )
+        self.fc21 = nn.Linear(2304, latent_dims)
+        self.fc22 = nn.Linear(2304, latent_dims)
 
-#         self.N = torch.distributions.Normal(0, 1)
-#         self.N.loc = self.N.loc.cuda() # hack to get sampling on the GPU
-#         self.N.scale = self.N.scale.cuda()
-#         self.kl = 0
+        self.decoder = nn.Sequential(
+            nn.Conv2d(1, 64, 3, 1),
+            nn.GroupNorm(min(32, 64), 64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 4, 2, 1),
+            nn.GroupNorm(min(32, 64), 64),  
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(64, 128,1),
+	    )
 
-#     def forward(self, x):
-#         x = torch.flatten(x, start_dim=1)
-#         x = F.relu(self.linear1(x))
-#         mu =  self.linear2(x)
-#         sigma = torch.exp(self.linear3(x))
-#         z = mu + sigma*self.N.sample(mu.shape)
-#         self.kl = (sigma**2 + mu**2 - torch.log(sigma) - 1/2).sum()
-#         return z
-# class VariationalAutoencoder(nn.Module):
-#     def __init__(self, latent_dims):
-#         super(VariationalAutoencoder, self).__init__()
-#         self.encoder = VariationalEncoder(latent_dims)
-#         self.decoder = Decoder(latent_dims)
+    def encode(self, x):
+        h = self.encoder(x)
+        print(h.shape)
+        # z, mu, logvar = self.bottleneck(torch.flatten(h,start_dim=1))
+        return h
 
-#     def forward(self, x):
-#         z = self.encoder(x)
-#         return self.decoder(z)
+    def bottleneck(self, h):
+        mu, logvar = self.fc21(h), self.fc22(h)
+        z = self.reparametrize(mu, logvar)
+        print(z.shape)
+        return z, mu, logvar
+
+    def reparametrize(self, mu, logvar):
+        std = logvar.mul(0.5).exp_()
+        if torch.cuda.is_available():
+            eps = torch.cuda.FloatTensor(std.size()).normal_()
+        else:
+            eps = torch.FloatTensor(std.size()).normal_()
+        eps = Variable(eps)
+        return eps.mul(std).add_(mu)
+
+    def decode(self, z):
+        z = self.decoder(z)
+        return z.reshape(-1,1,28,28)
+
+    def forward(self, x):
+        z, mu, logvar = self.encode(x)
+        z = self.decode(z)
+        return z, mu, logvar
+
+    def save(self, fn_enc, fn_dec):
+        torch.save(self.encoder.state_dict(), fn_enc)
+        torch.save(self.decoder.state_dict(), fn_dec)
+
+    def load(self, fn_enc, fn_dec):
+        self.encoder.load_state_dict(torch.load(fn_enc))
+        self.decoder.load_state_dict(torch.load(fn_dec))
+
+    def generate(self, x):
+        """
+        Given an input image x, returns the reconstructed image
+        :param x: (Tensor) [B x C x H x W]
+        :return: (Tensor) [B x C x H x W]
+        """
+
+        return self.forward(x)

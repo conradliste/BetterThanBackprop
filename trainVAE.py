@@ -55,6 +55,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=5)
 
     parser.add_argument('--log_dir', type=str, default='.')
+    
 
 
     config = parser.parse_args()
