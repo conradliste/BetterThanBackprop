@@ -1,0 +1,11 @@
+training_hyperparams:
+  n_epochs : 10
+  batch_size_train : 50
+  batch_size_test : 100
+
+logging:
+  log_interval : 10
+
+optim_hyperparams:
+  learning_rate : 0.01
+  momentum : 0.5
