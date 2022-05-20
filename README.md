@@ -6,7 +6,7 @@ Before running the code, first activate your virtual environment and run the `se
 
 If you have a pip-based environment (e.g. virtualenv), run the command
 
-`pip install -e -v .`
+`pip install --verbose -e .`
 
 This will ensure that when you edit any package file and rerun the code, the executed code reflects your changes.
 
