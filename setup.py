@@ -1,4 +1,5 @@
 from distutils.core import setup
+from setuptools import find_packages
 
 setup(
     name='SmarterThanBackProp',
@@ -6,10 +7,11 @@ setup(
     description='A package containg controlled based methods for training neural networks',
     author='Conrad Li',
     author_email='conradliste@utexas.edu',
-    requires=[ 'numpy', 'matplotlib','torch'],
-    packages=['utilities', 'learningViz'],
-    # package_data={
-    # 	'utilities': ['*'],
-    # 	'utilities.utils': ['*'],
-    # },
+    requires=[
+        'numpy',
+        'matplotlib',
+        'torch',
+        'jax'],
+    packages=find_packages(),
+    url='https://github.com/conradliste/SmarterThanBackProp'
 )

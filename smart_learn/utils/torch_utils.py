@@ -1,7 +1,7 @@
 # Optimizer
 import torch.optim as optim
 
-def get_optimizer(optim_name, params, lr=0.001):
+def get_torch_optimizer(optim_name, params, lr=0.001):
     """
     Returns optimizers by name
 
@@ -38,3 +38,12 @@ def get_optimizer(optim_name, params, lr=0.001):
     elif optim_name == 'LBFGS':
         optimizer = optim.LBFGS(params, lr=lr)
     return optimizer
+
+def print_state_dict(state_dict):
+    """
+    Prints the state dict of a model
+    """
+    for param_tensor in state_dict:
+        print(param_tensor, "\t", state_dict[param_tensor].size())
+    print("\n")
+    return

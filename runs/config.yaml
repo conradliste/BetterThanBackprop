@@ -3,7 +3,8 @@ training_hyperparams:
   batch_size_train : 50
   batch_size_test : 100
 
-logging:
+logging_params:
+  save_dir: "./results"
   log_interval : 10
 
 optim_hyperparams:

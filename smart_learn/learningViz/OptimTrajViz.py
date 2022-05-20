@@ -37,12 +37,3 @@ def plot_trajectory(projected_params):
     # Creating plot
     ax.scatter3D(x, y, z, color="green")
     plt.title("Projected Learning Trajectory")
-
-def print_state_dict(state_dict):
-    """
-    Prints the state dict of a model
-    """
-    for param_tensor in state_dict:
-        print(param_tensor, "\t", state_dict[param_tensor].size())
-    print("\n")
-    return
