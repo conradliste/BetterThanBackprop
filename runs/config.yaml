@@ -1,4 +1,5 @@
 training_hyperparams:
+  data_path: "/home/conradli/SmarterThanBackProp/data/"
   n_epochs : 10
   batch_size_train : 50
   batch_size_test : 100
@@ -10,3 +11,10 @@ logging_params:
 optim_hyperparams:
   learning_rate : 0.01
   momentum : 0.5
+
+model_hyperparams:
+  mnist_mlp:
+    input_dim: 784
+    output_dim: 10 
+    activation: "relu"
+    layers: [784, 64, 32, 10]

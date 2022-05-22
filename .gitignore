@@ -130,6 +130,6 @@ dmypy.json
 
 # Custom ignores
 MNIST/
-models/
 data/
 temp/
+results/
