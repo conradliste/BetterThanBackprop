@@ -1,4 +1,5 @@
-from models import mlp
+from turtle import hideturtle
+from models.mlp import MLP
 from dataLoaders import mnist
 import yaml
 import argparse 
@@ -23,7 +24,16 @@ with open(args.config, 'r') as config_file:
     momentum = optim_hyperparams['momentum']
     # Logging hyperparameters
     log_hyperparams = config['logging_params']
-    log_interval = log_hyperparams['log_interval']    
+    log_interval = log_hyperparams['log_interval']
+    # Model hyperparameters
+    model_hyperparams = config['model_hyperparams']
+    hidden_dims = model_hyperparams['hidden_dims']
+    activations = model_hyperparams['activations']
+    output_dim = model_hyperparams['output_dim']
+
 
 # Load in the data
 train_dataset, test_dataset, train_loader, test_loader = mnist.load_mnist(data_path, train_batch_size, test_batch_size)
+
+# Create the network
+network = MLP(hidden_dims=hidden_dims + [output_dim], activations=activations)
