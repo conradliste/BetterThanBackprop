@@ -3,8 +3,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 import matplotlib.pyplot as plt
-from utils import get_optimizer
-
 
 def get_param_matrix(model_prefix, model_dir):
     """

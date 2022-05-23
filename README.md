@@ -1,7 +1,16 @@
 # SmarterThanBackProp
-Repository that contains details on how to train neural networks better than normal backpropagation
+Repository that contains experimental code on how to train neural networks better than normal backpropagation.
 
-# How to Run the Code in Edit Mode
+# Code Organization
+
+The code is organized into 3 directories
+
+* smartLearn: Code implementing different learning algorithms
+* models: Neural network architectures
+* dataLoaders: Code for preprocessing and loading in datasets
+* examples: Executable code testing a learing algorithm on a specific dataset or game
+
+# How to Run the Code in Developer Mode
 Before running the code, first activate your virtual environment and run the `setup.py` file.
 
 If you have a pip-based environment (e.g. virtualenv), run the command

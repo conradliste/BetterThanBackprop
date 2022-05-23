@@ -11,7 +11,8 @@ setup(
         'numpy',
         'matplotlib',
         'torch',
-        'jax'],
+        'jax'
+        'flax'],
     packages=find_packages(),
     url='https://github.com/conradliste/SmarterThanBackProp'
 )
