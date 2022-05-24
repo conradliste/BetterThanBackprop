@@ -1,4 +1,5 @@
 import time
+from types import MethodDescriptorType
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -182,17 +183,18 @@ def one_hot(x, K):
     return np.array(x[:, None] == np.arange(K)[None, :], dtype=int)
 
 
-# def accuracy(dataset_loader,device):
-#     total_correct = 0
-#     for x, y in dataset_loader:
-#         x = x.to(device)
-#         y = one_hot(np.array(y.numpy()), 10)
-
-#         target_class = np.argmax(y, axis=1)
-#         predicted_class = np.argmax(forward(x,VAE,ODENet,device).cpu().detach().numpy(), axis=1)
-#         total_correct += np.sum(predicted_class == target_class)
-#     return total_correct / len(dataset_loader.dataset)
-
+def val_loss(loader,ODENet,VAE,device):
+    with torch.no_grad():
+        ODENet.eval()
+        VAE.eval()
+        loss = 0
+        for x,y in loader:
+            output,mu,logvar = forward(x,VAE,ODENet,device)
+            reconstr_loss, KL = vae_loss_function(output,x,mu,logvar)
+            loss += reconstr_loss + 4 * .0025 * KL
+        ODENet.train()
+        VAE.train()
+        return loss/len(loader)
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -260,6 +262,16 @@ def get_mnist_loaders(data_aug=False, batch_size=128, test_batch_size=1000, perc
     )
 
     return train_loader, test_loader, train_eval_loader
+def normal_kl(mu1, lv1, mu2, lv2):
+    """ Computes KL loss for VAE """
+
+    v1 = torch.exp(lv1)
+    v2 = torch.exp(lv2)
+    lstd1 = lv1 / 2.
+    lstd2 = lv2 / 2.
+
+    kl = lstd2 - lstd1 + ((v1 + (mu1 - mu2) ** 2.) / (2. * v2)) - .5
+    return kl
 
 def forward(x,VAE,ODENet,device,latent_dim=64):
     enc = VAE.encode(x)
@@ -271,7 +283,12 @@ def forward(x,VAE,ODENet,device,latent_dim=64):
     zt = ODENet(z0).to(device)
     output = VAE.decode(zt)
 
-    return output,mu,logvar
+    # pz0_mean = pz0_logvar = torch.zeros(z0.size()).to(device)
+    # analytic_kl = normal_kl(qz0_mean, qz0_logvar,
+    #                         pz0_mean, pz0_logvar).sum(-1)
+    # kl_loss = torch.mean(analytic_kl, dim=0)
+
+    return output,qz0_mean, qz0_logvar
 
 def main():
     torch.cuda.empty_cache()
@@ -348,15 +365,33 @@ def main():
         config.lr,config.batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
         decay_rates=[1, 0.1, 0.01, 0.001]
     )
-    
+    reconstruction_criterion= torch.nn.MSELoss()
     optimizer = torch.optim.SGD(list(VAE.parameters()) + list(ODENet.parameters()), lr=config.lr, momentum=0.9)
 
     best_acc = 0
     batch_time_meter = RunningAverageMeter()
     f_nfe_meter = RunningAverageMeter()
     b_nfe_meter = RunningAverageMeter()
-    end = time.time()
 
+    # training loss metric using average
+    loss_meter_t = RunningAverageMeter()
+    # training loss metric without KL
+    meter_train = RunningAverageMeter()
+    # validation loss metric without KL
+    meter_valid = RunningAverageMeter()
+    # list to track  training losses
+    lossTrain = []
+    lossTrainWithoutKL=[]
+    # list to track validation losses
+    lossVal = []
+
+    factor = 0.99
+    min_lr = 1e-7
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min',
+                                                     factor=factor, patience=5, verbose=False, threshold=1e-5,
+                                                     threshold_mode='rel', cooldown=0, min_lr=min_lr, eps=1e-08)
+    end = time.time()
+    
     for itr in range(config.nepochs * batches_per_epoch):
         if itr == 0:
             # logger.info(model)
@@ -366,12 +401,17 @@ def main():
             param_group['lr'] = lr_fn(itr)
 
         optimizer.zero_grad()
+        scheduler.step(metrics=loss_meter_t.avg)
+        
         x, y = data_gen.__next__()
         x = x.to(device)
         y = y.to(device)
        
         output,mu,logvar = forward(x,VAE,ODENet,device)
-        loss = vae_loss_function(output,x,mu,logvar)
+
+        reconstr_loss,KL = vae_loss_function(output,x,mu,logvar)
+
+        loss = reconstr_loss + 4 * .00025 * KL
 
         if is_odenet:
             nfe_forward = feature_layers[0].nfe
@@ -384,25 +424,31 @@ def main():
             nfe_backward = feature_layers[0].nfe
             feature_layers[0].nfe = 0
 
+        loss_meter_t.update(loss.item())
+        meter_train.update(loss.item() - KL.item())
+        lossTrain.append(loss_meter_t.avg)
+        lossTrainWithoutKL.append(meter_train.avg)
+
         batch_time_meter.update(time.time() - end)
         if is_odenet:
             f_nfe_meter.update(nfe_forward)
             b_nfe_meter.update(nfe_backward)
+        # test_loss = val_loss(test_loader,ODENet,VAE,device)
         end = time.time()
 
         if itr % batches_per_epoch == 0:
             with torch.no_grad():
-                # train_acc = accuracy(train_eval_loader,device)
-                # val_acc = accuracy(test_loader,device)
+                # train_loss = loss(train_eval_loader,device)
+                # val_loss = loss(test_loader,device)
                 # if val_acc > best_acc:
                 torch.save({'VAE_dict': VAE.state_dict(), 'args': config}, os.path.join(config.save, 'VAE.pth'))
                 torch.save({'ODE_dict': ODENet.state_dict(), 'args': config}, os.path.join(config.save, 'ODE.pth'))
                     # best_acc = val_acc
                 logger.info(
                     "Epoch {:04d} | Time {:.3f} ({:.3f}) | NFE-F {:.1f} | NFE-B {:.1f} | "
-                    "Train Acc {:.4f} | Test Acc {:.4f}".format(
+                    "Train Loss {:.4f} | Train Reconstruction Loss {:.4f}".format(
                         itr // batches_per_epoch, batch_time_meter.val, batch_time_meter.avg, f_nfe_meter.avg,
-                        b_nfe_meter.avg, train_acc, val_acc
+                        b_nfe_meter.avg, lossTrain[-1], lossTrainWithoutKL[-1]
                     )
                 )
 

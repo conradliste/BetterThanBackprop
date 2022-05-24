@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions import Normal
 
-reconstruction_function = nn.MSELoss(size_average=False)
+reconstruction_function = torch.nn.MSELoss()
 def vae_loss_function(recon_x, x, mu, logvar):
     """
     recon_x: generating images
@@ -15,13 +15,12 @@ def vae_loss_function(recon_x, x, mu, logvar):
     logvar: latent log variance
     """
     # x = torch.flatten(x, start_dim=1)
-    recons_loss = ((x - recon_x)**2).sum()  # mse loss
+    recons_loss = reconstruction_function(x,recon_x)  # mse loss
     # loss = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD_element = mu.pow(2).add_(logvar.exp()).mul_(-1).add_(1).add_(logvar)
     KLD = torch.sum(KLD_element).mul_(-0.5)
     # KL divergence
-    return recons_loss + 4 * 0.00025 * KLD
-    return BCE + 0.00025 * KLD
+    return recons_loss, KLD
 
 class MnistVAE(nn.Module):
     def __init__(self,latent_dims=30):
@@ -98,31 +97,30 @@ class MnistVAE2(nn.Module):
             nn.Conv2d(64, 64, 4, 2, 1),
             nn.GroupNorm(min(32, 64), 64),  
             nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 4, 2, 1),
+            nn.ReLU(inplace=True),
             nn.ConvTranspose2d(64, 128,1),
         )
         self.fc21 = nn.Linear(2304, latent_dims)
         self.fc22 = nn.Linear(2304, latent_dims)
-
         self.decoder = nn.Sequential(
-            nn.Conv2d(1, 64, 3, 1),
-            nn.GroupNorm(min(32, 64), 64),
+            nn.ConvTranspose2d(64,32,2,stride=1),
+            nn.Upsample(scale_factor=2, mode = 'nearest'),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 4, 2, 1),
-            nn.GroupNorm(min(32, 64), 64),  
+            nn.Upsample(scale_factor=2, mode = 'nearest'),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(64, 128,1),
+            nn.Conv2d(32,1,3,padding=1),
+            nn.Sigmoid()
 	    )
 
     def encode(self, x):
         h = self.encoder(x)
-        print(h.shape)
         # z, mu, logvar = self.bottleneck(torch.flatten(h,start_dim=1))
         return h
 
     def bottleneck(self, h):
         mu, logvar = self.fc21(h), self.fc22(h)
         z = self.reparametrize(mu, logvar)
-        print(z.shape)
         return z, mu, logvar
 
     def reparametrize(self, mu, logvar):
@@ -136,7 +134,7 @@ class MnistVAE2(nn.Module):
 
     def decode(self, z):
         z = self.decoder(z)
-        return z.reshape(-1,1,28,28)
+        return z
 
     def forward(self, x):
         z, mu, logvar = self.encode(x)
