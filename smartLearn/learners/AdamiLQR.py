@@ -28,27 +28,16 @@ class iLQR:
         self._delta_0 = 2.0
         self._delta = self._delta_0
         # Initialize gain matrices (K and k)
-        self._k = np.zeros((N, dynamics.action_size))
-        self._K = np.zeros((N, dynamics.action_size, dynamics.state_size))
+        self._k = jnp.zeros((N, dynamics.action_size))
+        self._K = jnp.zeros((N, dynamics.action_size, dynamics.state_size))
 
-    def fit(self, x0, us_init, n_iterations=100, tol=1e-6, on_iteration=None):
+    def fit(self, x0, us_init, n_iterations=100, tol=1e-6):
         """Computes the optimal controls.
         Args:
             x0: Initial state [state_size].
             us_init: Initial control path [N, action_size].
             n_iterations: Maximum number of interations. Default: 100.
             tol: Tolerance. Default: 1e-6.
-            on_iteration: Callback at the end of each iteration with the
-                following signature:
-                (iteration_count, x, J_opt, accepted, converged) -> None
-                where:
-                    iteration_count: Current iteration count.
-                    xs: Current state path.
-                    us: Current action path.
-                    J_opt: Optimal cost-to-go.
-                    accepted: Whether this iteration yielded an accepted result.
-                    converged: Whether this iteration converged successfully.
-                Default: None.
         Returns:
             Tuple of
                 xs: optimal state path [N+1, state_size].
@@ -59,7 +48,7 @@ class iLQR:
         self._delta = self._delta_0
 
         # Backtracking line search candidates 0 < alpha <= 1.
-        alphas = 1.1**(-np.arange(10)**2)
+        alphas = 1.1**(-jnp.arange(10)**2)
 
         us = us_init.copy()
         k = self._k
@@ -88,7 +77,7 @@ class iLQR:
                     J_new = self._trajectory_cost(xs_new, us_new)
 
                     if J_new < J_opt:
-                        if np.abs((J_opt - J_new) / J_opt) < tol:
+                        if jnp.abs((J_opt - J_new) / J_opt) < tol:
                             converged = True
 
                         J_opt = J_new
@@ -105,7 +94,7 @@ class iLQR:
                         # Accept this.
                         accepted = True
                         break
-            except np.linalg.LinAlgError as e:
+            except jnp.linalg.LinAlgError as e:
                 # Quu was not positive-definite and this diverged.
                 # Try again with a higher regularization term.
                 warnings.warn(str(e))
@@ -117,9 +106,6 @@ class iLQR:
                 if self._mu_max and self._mu >= self._mu_max:
                     warnings.warn("exceeded max regularization term")
                     break
-
-            if on_iteration:
-                on_iteration(iteration, xs, us, J_opt, accepted, converged)
 
             if converged:
                 break
@@ -145,8 +131,8 @@ class iLQR:
                 xs: state path [N+1, state_size].
                 us: control path [N, action_size].
         """
-        xs_new = np.zeros_like(xs)
-        us_new = np.zeros_like(us)
+        xs_new = jnp.zeros_like(xs)
+        us_new = jnp.zeros_like(us)
         xs_new[0] = xs[0].copy()
 
         for i in range(self.N):
@@ -203,25 +189,25 @@ class iLQR:
         action_size = self.dynamics.action_size
         N = us.shape[0]
 
-        xs = np.empty((N + 1, state_size))
-        F_x = np.empty((N, state_size, state_size))
-        F_u = np.empty((N, state_size, action_size))
+        xs = jnp.empty((N + 1, state_size))
+        F_x = jnp.empty((N, state_size, state_size))
+        F_u = jnp.empty((N, state_size, action_size))
 
         if self._use_hessians:
-            F_xx = np.empty((N, state_size, state_size, state_size))
-            F_ux = np.empty((N, state_size, action_size, state_size))
-            F_uu = np.empty((N, state_size, action_size, action_size))
+            F_xx = jnp.empty((N, state_size, state_size, state_size))
+            F_ux = jnp.empty((N, state_size, action_size, state_size))
+            F_uu = jnp.empty((N, state_size, action_size, action_size))
         else:
             F_xx = None
             F_ux = None
             F_uu = None
 
-        L = np.empty(N + 1)
-        L_x = np.empty((N + 1, state_size))
-        L_u = np.empty((N, action_size))
-        L_xx = np.empty((N + 1, state_size, state_size))
-        L_ux = np.empty((N, action_size, state_size))
-        L_uu = np.empty((N, action_size, action_size))
+        L = jnp.empty(N + 1)
+        L_x = jnp.empty((N + 1, state_size))
+        L_u = jnp.empty((N, action_size))
+        L_xx = jnp.empty((N + 1, state_size, state_size))
+        L_ux = jnp.empty((N, action_size, state_size))
+        L_uu = jnp.empty((N, action_size, action_size))
 
         xs[0] = x0
         for i in range(N):
@@ -287,8 +273,8 @@ class iLQR:
         V_x = L_x[-1]
         V_xx = L_xx[-1]
 
-        k = np.empty_like(self._k)
-        K = np.empty_like(self._K)
+        k = jnp.empty_like(self._k)
+        K = jnp.empty_like(self._K)
 
         for i in range(self.N - 1, -1, -1):
             if self._use_hessians:
@@ -302,8 +288,8 @@ class iLQR:
                                                      L_uu[i], V_x, V_xx)
 
             # Eq (6).
-            k[i] = -np.linalg.solve(Q_uu, Q_u)
-            K[i] = -np.linalg.solve(Q_uu, Q_ux)
+            k[i] = -jnp.linalg.solve(Q_uu, Q_u)
+            K[i] = -jnp.linalg.solve(Q_uu, Q_ux)
 
             # Eq (11b).
             V_x = Q_x + K[i].T.dot(Q_uu).dot(k[i])
@@ -314,7 +300,7 @@ class iLQR:
             V_xx += K[i].T.dot(Q_ux) + Q_ux.T.dot(K[i])
             V_xx = 0.5 * (V_xx + V_xx.T)  # To maintain symmetry.
 
-        return np.array(k), np.array(K)
+        return jnp.array(k), jnp.array(K)
 
     def _Q(self,
            f_x,
@@ -362,13 +348,13 @@ class iLQR:
         Q_xx = l_xx + f_x.T.dot(V_xx).dot(f_x)
 
         # Eqs (11b) and (11c).
-        reg = self._mu * np.eye(self.dynamics.state_size)
+        reg = self._mu * jnp.eye(self.dynamics.state_size)
         Q_ux = l_ux + f_u.T.dot(V_xx + reg).dot(f_x)
         Q_uu = l_uu + f_u.T.dot(V_xx + reg).dot(f_u)
 
         if self._use_hessians:
-            Q_xx += np.tensordot(V_x, f_xx, axes=1)
-            Q_ux += np.tensordot(V_x, f_ux, axes=1)
-            Q_uu += np.tensordot(V_x, f_uu, axes=1)
+            Q_xx += jnp.tensordot(V_x, f_xx, axes=1)
+            Q_ux += jnp.tensordot(V_x, f_ux, axes=1)
+            Q_uu += jnp.tensordot(V_x, f_uu, axes=1)
 
         return Q_x, Q_u, Q_xx, Q_ux, Q_uu
