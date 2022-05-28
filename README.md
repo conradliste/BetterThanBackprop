@@ -3,12 +3,17 @@ Repository that contains experimental code on how to train neural networks bette
 
 # Code Organization
 
-The code is organized into 3 directories
+* SmarterThanBackprop: Source Code
+    * dataLoaders: Code for preprocessing and loading in datasets
+    * feedbackLearners: Code implementing different learning algorithms
+    * examples: Executable code testing a learing algorithm on a specific dataset or game
+    * models: Neural network architectures
+    * utils: Miscallaneous Functions
 
-* smartLearn: Code implementing different learning algorithms
-* models: Neural network architectures
-* dataLoaders: Code for preprocessing and loading in datasets
-* examples: Executable code testing a learing algorithm on a specific dataset or game
+There are also the following directories that I am using to store results and data. However you can rename these directories to fit your code
+
+* data: Stores any datasets
+* results: Graphs, tables, and logs for a given training run
 
 # How to Run the Code in Developer Mode
 Before running the code, first activate your virtual environment and run the `setup.py` file.
