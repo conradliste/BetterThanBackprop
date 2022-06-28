@@ -32,7 +32,7 @@ class ConvNet(nn.Module):
     Class to create a convolutional network with arbitrary layer dims and activations
     """
     hidden_dims: Sequence[int]
-    activations: Sequence[str] = [nn.relu] * len(hidden_dims)
+    activations: str = nn.relu
 
     @nn.compact
     def __call__(self, x):

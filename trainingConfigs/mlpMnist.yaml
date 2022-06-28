@@ -1,5 +1,5 @@
 training_hyperparams:
-  data_path: "/home/conradli/SmarterThanBackProp/data/"
+  data_path: "/home/conradli/BetterThanBackprop/data"
   n_epochs : 10
   batch_size_train : 32
   batch_size_test : 100
@@ -7,6 +7,7 @@ training_hyperparams:
 
 logging_params:
   save_dir: "./results"
+  log_interval: 10
 
 optim_hyperparams:
   learning_rate : 0.001

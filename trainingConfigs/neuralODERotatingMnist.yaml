@@ -1,0 +1,22 @@
+training_hyperparams:
+  data_path: "/home/conradli/BetterThanBackprop/data"
+  n_epochs : 10
+  batch_size_train : 32
+  batch_size_test : 100
+  eval_interval: 10
+
+logging_params:
+  save_dir: "./results"
+  log_interval: 10
+
+optim_hyperparams:
+  learning_rate : 0.001
+  beta1: 0.99
+  beta2: 0.99
+  eps: 0.00000001
+
+model_hyperparams:
+  input_dim: 784
+  output_dim: 10
+  activations: "relu"
+  hidden_dims: [64, 32]

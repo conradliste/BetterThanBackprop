@@ -1,4 +1,3 @@
-from enum import EnumMeta
 import yaml
 import argparse
 import optax
@@ -7,11 +6,11 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import matplotlib.pyplot as plt
-
-from models.common_modules import MLP
-from dataLoaders import mnist
-from utils.nn_utils import cross_entropy_loss, init_params
-from utils.torch_utils import FlattenAndCast
+# Custom modules
+from betterthanbackprop.models.common_modules import MLP
+from betterthanbackprop.dataLoaders import mnist
+from betterthanbackprop.utils.nn_utils import cross_entropy_loss, init_params
+from betterthanbackprop.utils.torch_utils import FlattenAndCast
 
 if __name__ == "__main__":
     # Parse command line arguments
@@ -83,7 +82,6 @@ if __name__ == "__main__":
         losses = []
         # Train for one epoch
         for i, (inputs, labels) in enumerate(train_loader):
-            old_params = params
             params, opt_state, loss = train_step(params, inputs, labels, opt_state)
             losses.append(loss)
         print("Epoch: {}, Train Loss: {}".format(epoch, sum(losses)/len(losses)))

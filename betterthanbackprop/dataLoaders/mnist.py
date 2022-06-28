@@ -1,5 +1,5 @@
 from torchvision.datasets import MNIST
-from utils.torch_utils import NumpyLoader
+from betterthanbackprop.utils.torch_utils import NumpyLoader
 
 def load_mnist(data_path, train_batch_size, test_batch_size, transform=None, download=False):
     train_dataset = MNIST(

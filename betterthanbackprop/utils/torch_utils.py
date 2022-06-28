@@ -1,15 +1,42 @@
-# Optimizer
+
 import torch.optim as optim
 import numpy as np
+import scipy.ndimage
 import jax.numpy as jnp
+#
 from torch.utils import data
+import torch.nn as nn
+import torch
+import os
+
 
 class FlattenAndCast(object):
     """
     Helper class that acts a transform to flatten and cast the input to a jnp.float32
     """
     def __call__(self, input):
-        return np.ravel(np.array(input, dtype=jnp.float32))
+        return jnp.array(input).reshape(28*28)
+
+class JnpCast(object):
+    def __call__(self, input):
+        return jnp.array(input)
+
+class RotatingSequence(object):
+    """
+    Generates a sequence an input image rotate a specfic 
+    """
+    def __init__(self, num_rots):
+        self.num_rots = num_rots
+        return
+
+    def __call__(self, input):
+        rot_sequence = []
+        rot_angle = 360 / self.num_rots
+        for rot_idx in range(self.num_rots + 1):
+            rot_image = scipy.ndimage.rotate(input, rot_angle * rot_idx, reshape=False)
+            rot_sequence.append(rot_image)
+        return rot_sequence
+
 
 class NumpyLoader(data.DataLoader):
     """
@@ -92,3 +119,21 @@ def print_state_dict(state_dict):
         print(param_tensor, "\t", state_dict[param_tensor].size())
     print("\n")
     return
+
+def get_param_matrix(model_prefix, model_dir):
+    """
+    Grabs the parameters of a saved model and returns them as a matrix
+    """
+    # Load and combine the parameters
+    param_matrix = []
+    for file in os.listdir(model_dir):
+        if file.startswith(model_prefix):
+            model_path = os.path.join(model_dir, file)
+            state_dict = torch.load(model_path)
+            # Grab all params in state dict
+            params = [state_dict[param].data.float() for param in state_dict]  
+            # Reshape to one long parameter vector
+            params = nn.utils.parameters_to_vector(params)
+            param_matrix.append(params.cpu().numpy())
+    params_matrix = np.array(param_matrix)
+    return params_matrix
