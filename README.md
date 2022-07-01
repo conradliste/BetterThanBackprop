@@ -6,10 +6,10 @@ Repository that contains experimental code on how to train neural networks bette
 * betterthanbackprop: Source Code
     * dataLoaders: Code for preprocessing and loading in datasets
     * feedbackLearners: Code implementing different learning algorithms
-    * examples: Executable code testing a learing algorithm on a specific dataset or game
     * models: Neural network architectures
     * utils: Miscallaneous Functions
 * examples: Example code that uses the library
+* tests: Test code to make the library is working properly
 * trainingConfigs: YAML files that contain hyperparameters for the training
 
 There are also the following directories that I am using to store results and data. However you can rename these directories to fit your code
