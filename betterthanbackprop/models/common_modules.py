@@ -31,16 +31,18 @@ class ConvNet(nn.Module):
     """
     Class to create a convolutional network with arbitrary layer dims and activations
     """
-    hidden_dims: Sequence[int]
-    activations: str = nn.relu
+    hidden_dims: Sequence[Any]
+    activations: Callable[..., Any]
 
     @nn.compact
     def __call__(self, x):
         """
         Forward pass through MLP network
         """
-        for dim, act in zip(self.hidden_dims, self.activations):
-            x = act(nn.Conv(dim)(x))
+        for out_channel, kernel_size in self.hidden_dims[:-1]:
+            x = nn.Conv(features=out_channel, kernel_size=kernel_size)(x)
+            x = self.act(x)
+        x = nn.Conv(features=out_channel, kernel_size=kernel_size)(x)
         return x
     
                 

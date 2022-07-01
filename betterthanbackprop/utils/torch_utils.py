@@ -10,6 +10,8 @@ import torch
 import os
 
 
+#### CUSTOM TRANSFORMATIONS ####
+
 class FlattenAndCast(object):
     """
     Helper class that acts a transform to flatten and cast the input to a jnp.float32
@@ -20,6 +22,7 @@ class FlattenAndCast(object):
 class JnpCast(object):
     def __call__(self, input):
         return jnp.array(input)
+
 
 class RotatingSequence(object):
     """
@@ -35,7 +38,7 @@ class RotatingSequence(object):
         for rot_idx in range(self.num_rots + 1):
             rot_image = scipy.ndimage.rotate(input, rot_angle * rot_idx, reshape=False)
             rot_sequence.append(rot_image)
-        return rot_sequence
+        return np.array(rot_sequence)
 
 
 class NumpyLoader(data.DataLoader):

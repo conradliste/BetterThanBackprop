@@ -10,9 +10,12 @@ def test_rotation(data_path):
     """
     Displays all the rotations of a random MNIST digit
     """
-    train_set = rotating_mnist.load_rotating_mnist(data_path, 10, train=True)
+    train_set, test_set, train_dataloader, test_dataloader = rotating_mnist.load_rotating_mnist(data_path, 10, 32, 32, train=True)
     random_index = np.random.randint(0, len(train_set))
-    plot_utils.display_images(train_set[random_index][0])
+    rand_image = train_set[random_index][0]
+    print("Data Type:", type(rand_image))
+    print("Shape:", rand_image.shape)
+    plot_utils.display_images(rand_image)
     plt.show()
 
 
